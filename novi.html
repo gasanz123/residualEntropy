@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Decision Tree Generator</title>
+    <style>
+        .tree-node {
+            font-family: monospace;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <h3>Decision Tree Generator</h3>
+    <div id="tree"></div>
+
+    <script>
+        var barva = ['crna','crna','crna','crna','siva','siva','rumena','rumena','siva','siva','rumena','rumena','crna','siva','bela','bela','bela','bela','bela','bela'];
+        var rep = ['kratek','kratek','kratek','kratek','dolg','dolg','dolg','dolg','dolg','dolg','dolg','kratek','dolg','kratek','dolg','dolg','dolg','kratek','kratek','kratek'];
+        var klobuk = ['nima','nima','nima','nima','ima','nima','nima','nima','ima','nima','ima','ima','ima','nima','ima','nima','ima','ima','ima','ima'];
+        var kruh = ['crn','crn','crn','crn','crn','crn','crn','crn','crn','crn','bel','bel','bel','bel','bel','bel','bel','bel','bel','bel'];
+
+        var attributes = ['barva', 'rep', 'klobuk'];
+        var data = [barva, rep, klobuk];
+        var target = kruh;
+
+        function entropy(someClass) {
+            var freq = makeFrequencyTable(someClass);
+            var total = someClass.length;
+            var entropySum = 0;
+            for (let [key, value] of freq) {
+                var ratio = value / total;
+                entropySum -= ratio * Math.log2(ratio);
+            }
+            return entropySum;
+        }
+
+        function makeFrequencyTable(someClass) {
+            var freq = new Map();
+            for (var item of someClass) {
+                freq.set(item, (freq.get(item) || 0) + 1);
+            }
+            return freq;
+        }
+
+        function gain(firstClass, secondClass) {
+            var totalEntropy = entropy(secondClass);
+            var values = Array.from(new Set(firstClass));
+            var weightedEntropySum = 0;
+            for (var value of values) {
+                var subset = secondClass.filter((_, index) => firstClass[index] === value);
+                weightedEntropySum += (subset.length / firstClass.length) * entropy(subset);
+            }
+            return totalEntropy - weightedEntropySum;
+        }
+
+        function bestAttribute(data, target) {
+            var gains = data.map(attribute => gain(attribute, target));
+            return gains.indexOf(Math.max(...gains));
+        }
+
+        function buildTree(data, target, attributeNames) {
+            if (new Set(target).size === 1) {
+                return { type: 'leaf', class: target[0] };
+            }
+            if (data.length === 0 || attributeNames.length === 0) {
+                return { type: 'leaf', class: mostCommonClass(target) };
+            }
+
+            var bestAttrIndex = bestAttribute(data, target);
+            var bestAttrName = attributeNames[bestAttrIndex];
+            var tree = { type: 'node', attribute: bestAttrName, children: {} };
+            var uniqueValues = Array.from(new Set(data[bestAttrIndex]));
+
+            for (var value of uniqueValues) {
+                var subsetIndices = data[bestAttrIndex].map((item, index) => item === value ? index : -1).filter(index => index !== -1);
+                var subsetData = data.map(attribute => subsetIndices.map(index => attribute[index]));
+                var subsetTarget = subsetIndices.map(index => target[index]);
+                var newAttributeNames = attributeNames.slice();
+                newAttributeNames.splice(bestAttrIndex, 1);
+                tree.children[value] = buildTree(subsetData, subsetTarget, newAttributeNames);
+            }
+
+            return tree;
+        }
+
+        function mostCommonClass(target) {
+            var freq = makeFrequencyTable(target);
+            var maxCount = 0;
+            var mostCommon = null;
+            for (let [key, value] of freq) {
+                if (value > maxCount) {
+                    maxCount = value;
+                    mostCommon = key;
+                }
+            }
+            return mostCommon;
+        }
+
+        function displayTree(node, indent = 0) {
+            var spacing = "&nbsp;".repeat(indent * 4);
+            if (node.type === 'leaf') {
+                document.getElementById('tree').innerHTML += `${spacing}Class: ${node.class}<br>`;
+            } else {
+                document.getElementById('tree').innerHTML += `${spacing}${node.attribute}<br>`;
+                for (var value in node.children) {
+                    document.getElementById('tree').innerHTML += `${spacing}${value}:<br>`;
+                    displayTree(node.children[value], indent + 1);
+                }
+            }
+        }
+
+        var tree = buildTree(data, target, attributes);
+        displayTree(tree);
+    </script>
+</body>
+</html>
