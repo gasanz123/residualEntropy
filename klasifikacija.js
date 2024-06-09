@@ -5,7 +5,6 @@
 // var klobuk = ["nima","nima","nima","nima","ima","nima","nima","nima","ima","nima","ima","ima","ima","nima","ima","nima","ima","ima","ima","ima"]
 // var kruh = ["crn","crn","crn","crn","crn","crn","crn","crn","crn","crn","bel","bel","bel","bel","bel","bel","bel","bel","bel","bel"]
 
-// hotel nadaljevat a izgubil voljo
 // atributi = []
 // names = ["barva","rep","klobuk"]
 // atributi.push(barva)
@@ -143,13 +142,13 @@ function gainRatio(firstClass,secondClass){
     return (I - Ires) / IFirst
 }
 
-function mostImportantAttribute(atributes,secondClass){
+function mostImportantAttribute(nodes,secondClass){
     var maxGr = -1
     var index = -1
-    for(var i=0;i<atributes.length;i++){
-        var trenGr = gainRatio(atributes[i],secondClass)
-        if(trenGr > maxGr){
-            maxGr = trenGr
+    for(var i=0;i<nodes.length;i++){
+        var currGr = gainRatio(nodes[i].gr,secondClass)
+        if(currGr > maxGr && !nodes[i].marked){
+            maxGr = currGr
             index = i
         }
     }
@@ -157,58 +156,49 @@ function mostImportantAttribute(atributes,secondClass){
     return index
 }
 
+function func(){
+    var num = document.getElementById("stAtr").value
+    for(i=0 ; i<num ; i++){
+        document.getElementById("vnosi").innerHTML += `<h3>${i+1}. atribut<h3> <input id="atr${i}"  type='text'><br>`;
+    }
+    document.getElementById("vnosi").innerHTML += `<h3>Ciljni razred<h3> <input id="ciljni" type='text'><br>`;
+    document.getElementById("vnosi").innerHTML += `<button onclick="func2()">Ovrednoti</button>`
+}
+
+function func2(){
+    var num = document.getElementById("stAtr").value
+    for(i=0 ; i<num ; i++){
+        document.getElementById("racuni").innerHTML += `<h5>Entropija ${i+1}. atributa<h5> ${entropy(document.getElementById("atr"+i).value)} bita <br>`;
+        document.getElementById("racuni").innerHTML += `<h5>Rezidualna entropija ${i+1}. atributa<h5> ${residualEntropy(document.getElementById("atr"+i).value,document.getElementById("ciljni").value)} bita<br>`
+        document.getElementById("racuni").innerHTML += `<h5>Infromacijski prispevek ${i+1}. atributa<h5> ${gain(document.getElementById("atr"+i).value,document.getElementById("ciljni").value)} bita<br>`
+        document.getElementById("racuni").innerHTML += `<h5>Razmerje infromacijskega prispevka ${i+1}. atributa<h5> ${gainRatio(document.getElementById("atr"+i).value,document.getElementById("ciljni").value)} bita<br>`
+    }
+    document.getElementById("racuni").innerHTML += `<h5>Entropija ciljnega razreda<h5> ${entropy(document.getElementById("ciljni").value)} bita <br>`;
+    document.getElementById("racuni").innerHTML += `<button onclick="func3()">Sortiraj</button>`
+}
+
+function func3(){
+    let nodes = [];
+    var num = document.getElementById("stAtr").value
+
+    for(i=0 ; i<num ; i++){
+        nodes.push({id:i,gr:gainRatio(document.getElementById("atr"+i).value,document.getElementById("ciljni").value),marked:false})
+    }
+
+    numOfMarked = 0
+
+    while(numOfMarked < num){
+        indexAttr = mostImportantAttribute(nodes,document.getElementById("ciljni").value)
+        currId = nodes[indexAttr].id
+        //currfreq = makeFrequencyTable(document.getElementById("atr"+currId).value)
+        document.getElementById("urejeni").innerHTML += `<h5>${currId+1}. atribut<h5> Razmerje infromacijskega prispevka <br> ${nodes[indexAttr].gr} bita<br>`
+        nodes[indexAttr].marked = true  
+        numOfMarked++;
+    }
 
 
-// determine most important attribute and make frequency table so you can iterate number of categories in most important attribute
-// call function partofclass so you get a subset of other attributes for every category
 
-// basically you need to cut set in two parts since the hat has two values
-// var noviAtributi = []
-
-// var imaBarva = partOfClass(klobuk,barva,"ima")
-// var imaRep = partOfClass(klobuk,rep,"ima")
-// var imaKlobuk = partOfClass(klobuk,klobuk,"ima")
-// var imaKruh = partOfClass(klobuk,kruh,"ima")
-
-// var nimaBarva = partOfClass(klobuk,barva,"nima")
-// var nimaRep = partOfClass(klobuk,rep,"nima")
-// var nimaKlobuk = partOfClass(klobuk,klobuk,"nima")
-// var nimaKruh = partOfClass(klobuk,kruh,"nima")
-
-// noviAtributi.push(imaBarva)
-// noviAtributi.push(imaRep)
-
-// var mia = mostImportantAttribute(noviAtributi,imaKruh)
-// console.log(mia)
-
-// noviAtributi = []
-
-// noviAtributi.push(nimaBarva)
-// noviAtributi.push(nimaRep)
-
-// var mia = mostImportantAttribute(noviAtributi,nimaKruh)
-// console.log(mia)
-
-
-
-
-// var mia = mostImportantAttribute()
-// var freq = makeFrequencyTable(atributi[mia])
-// var numOfVals = freq.size
-// var names2 = []
-// console.log(numOfVals)
-// for(var i=0;i<numOfVals;i++){
-//     //console.log(atributi[mia])
-//     var currentClass = partOfClass(atributi[mia],kruh,[...freq][i])
-//     console.log(currentClass)
-//     names2.push(currentClass)
-// }
-
-//console.log(names.indexOf("klobuk"))
-//console.log(names2)
-// console.log("gainRatio barva: ",gain(barva,kruh))
-// console.log("gainRatio rep: ",gain(rep,kruh))
-// console.log("gainRatio klobuk: ",gain(klobuk,kruh))
+}
 
 
 
