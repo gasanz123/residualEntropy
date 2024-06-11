@@ -1,12 +1,129 @@
+class DecisionTree {
+    constructor(data, targetAttribute) {
+        this.data = data;
+        this.targetAttribute = targetAttribute;
+        this.tree = this.buildTree(data, targetAttribute);
+    }
+
+    entropy(data, targetAttribute) {
+        const total = data.length;
+        const counts = {};
+        data.forEach(item => {
+            const label = item[targetAttribute];
+            if (!counts[label]) counts[label] = 0;
+            counts[label]++;
+        });
+
+        let entropy = 0;
+        for (let label in counts) {
+            const p = counts[label] / total;
+            entropy -= p * Math.log2(p);
+        }
+        return entropy;
+    }
+
+    gain(data, attribute, targetAttribute) {
+        const total = data.length;
+        const counts = {};
+        data.forEach(item => {
+            const key = item[attribute];
+            if (!counts[key]) counts[key] = [];
+            counts[key].push(item);
+        });
+
+        let weightedEntropy = 0;
+        for (let key in counts) {
+            const subset = counts[key];
+            weightedEntropy += (subset.length / total) * this.entropy(subset, targetAttribute);
+        }
+        return this.entropy(data, targetAttribute) - weightedEntropy;
+    }
+
+    majorityVote(data, targetAttribute) {
+        const counts = {};
+        data.forEach(item => {
+            const label = item[targetAttribute];
+            if (!counts[label]) counts[label] = 0;
+            counts[label]++;
+        });
+
+        let maxCount = 0;
+        let majorityLabel = null;
+        for (let label in counts) {
+            if (counts[label] > maxCount) {
+                maxCount = counts[label];
+                majorityLabel = label;
+            }
+        }
+        return majorityLabel;
+    }
+
+    buildTree(data, targetAttribute, attributes = null) {
+        if (!attributes) attributes = Object.keys(data[0]).filter(attr => attr !== targetAttribute);
+        const labels = data.map(item => item[targetAttribute]);
+
+        if (new Set(labels).size === 1) {
+            return { label: labels[0] };
+        }
+
+        if (attributes.length === 0) {
+            return { label: this.majorityVote(data, targetAttribute) };
+        }
+
+        const gains = attributes.map(attr => this.gain(data, attr, targetAttribute));
+        const maxGain = Math.max(...gains);
+        const bestAttrIndex = gains.indexOf(maxGain);
+        const bestAttr = attributes[bestAttrIndex];
+
+        const tree = { attribute: bestAttr, branches: {} };
+        const remainingAttributes = attributes.filter(attr => attr !== bestAttr);
+        const uniqueValues = new Set(data.map(item => item[bestAttr]));
+
+        uniqueValues.forEach(value => {
+            const subset = data.filter(item => item[bestAttr] === value);
+            tree.branches[value] = this.buildTree(subset, targetAttribute, remainingAttributes);
+        });
+
+        return tree;
+    }
+
+    predict(sample, tree = this.tree) {
+        if (tree.label) {
+            return tree.label;
+        }
+
+        const attributeValue = sample[tree.attribute];
+        const branch = tree.branches[attributeValue];
+        if (!branch) {
+            return null;
+        }
+        return this.predict(sample, branch);
+    }
+
+    displayTree(tree = this.tree, indent = 0) {
+        const prikazDiv = document.getElementById('prikaz');
+        const spacing = '&nbsp;'.repeat(indent * 4);
+        if (tree.label) {
+            prikazDiv.innerHTML += `${spacing}Label: ${tree.label}<br>`;
+        } else {
+            prikazDiv.innerHTML += `${spacing}Attribute: ${tree.attribute}<br>`;
+            for (let value in tree.branches) {
+                prikazDiv.innerHTML += `${spacing}&nbsp;&nbsp;&nbsp;&nbsp;${value}:<br>`;
+                this.displayTree(tree.branches[value], indent + 1);
+            }
+        }
+    }
+}
+
+// Example usage with HTML input and button handling
 function reloadValues() {
     document.getElementById("vnosi").innerHTML = "";
-    document.getElementById("racuni").innerHTML = "";
     document.getElementById("prikaz").innerHTML = "";
 }
 
 function func() {
-    var num = document.getElementById("stAtr").value;
-    var vnosiDiv = document.getElementById("vnosi");
+    const num = document.getElementById("stAtr").value;
+    const vnosiDiv = document.getElementById("vnosi");
     vnosiDiv.innerHTML = "";
 
     for (let i = 0; i < num; i++) {
@@ -17,141 +134,33 @@ function func() {
 }
 
 function func2() {
-    var num = document.getElementById("stAtr").value;
-    var racuniDiv = document.getElementById("racuni");
-    racuniDiv.innerHTML = "";
+    const num = document.getElementById("stAtr").value;
+
+    const data = [];
+    const target = document.getElementById("ciljni").value.split(",");
+    const attributes = [];
 
     for (let i = 0; i < num; i++) {
-        let attr = document.getElementById("atr" + i).value.split(",");
-        let target = document.getElementById("ciljni").value.split(",");
-
-        racuniDiv.innerHTML += `<h5>Entropija ${i + 1}. atributa</h5> ${entropy(attr)} bit <br>`;
-        racuniDiv.innerHTML += `<h5>Rezidualna entropija ${i + 1}. atributa</h5> ${residualEntropy(attr, target)} bit<br>`;
-        racuniDiv.innerHTML += `<h5>Informacijski prispevek ${i + 1}. atributa</h5> ${gain(attr, target)} bit<br>`;
-        racuniDiv.innerHTML += `<h5>Razmerje informacijskega prispevka ${i + 1}. atributa</h5> ${gainRatio(attr, target)} bit<br>`;
+        const attrValues = document.getElementById("atr" + i).value.split(",");
+        attributes.push(`Atribut ${i + 1}`);
+        data.push(attrValues.map((val, index) => ({
+            [`Atribut ${i + 1}`]: val,
+            target: target[index]
+        })));
     }
 
-    racuniDiv.innerHTML += `<h5>Entropija ciljnega razreda</h5> ${entropy(document.getElementById("ciljni").value.split(","))} bit <br>`;
-    racuniDiv.innerHTML += `<button onclick="generateTree()">Izrisi</button>`;
-}
-
-function entropy(someClass) {
-    var freq = makeFrequencyTable(someClass);
-    var total = someClass.length;
-    var entropySum = 0;
-    for (let [key, value] of freq) {
-        var ratio = value / total;
-        entropySum -= ratio * Math.log2(ratio);
-    }
-    return entropySum;
-}
-
-function makeFrequencyTable(someClass) {
-    var freq = new Map();
-    for (var item of someClass) {
-        freq.set(item, (freq.get(item) || 0) + 1);
-    }
-    return freq;
-}
-
-function gain(firstClass, secondClass) {
-    var totalEntropy = entropy(secondClass);
-    var values = Array.from(new Set(firstClass));
-    var weightedEntropySum = 0;
-    for (var value of values) {
-        var subset = secondClass.filter((_, index) => firstClass[index] === value);
-        weightedEntropySum += (subset.length / firstClass.length) * entropy(subset);
-    }
-    return totalEntropy - weightedEntropySum;
-}
-
-function gainRatio(firstClass, secondClass) {
-    var I = entropy(secondClass);
-    var Ires = residualEntropy(firstClass, secondClass);
-    var IFirst = entropy(firstClass);
-    if (IFirst == 0) {
-        return 0;
-    }
-    return (I - Ires) / IFirst;
-}
-
-function residualEntropy(firstClass, secondClass) {
-    var values = Array.from(new Set(firstClass));
-    var residualEntropy = 0;
-    for (var value of values) {
-        var subset = secondClass.filter((_, index) => firstClass[index] === value);
-        residualEntropy += (subset.length / firstClass.length) * entropy(subset);
-    }
-    return residualEntropy;
-}
-
-function bestAttribute(data, target) {
-    var gains = data.map(attribute => gain(attribute, target));
-    return gains.indexOf(Math.max(...gains));
-}
-
-function buildTree(data, target, attributeNames) {
-    if (new Set(target).size === 1) {
-        return { type: 'leaf', class: target[0] };
-    }
-    if (data.length === 0 || attributeNames.length === 0) {
-        return { type: 'leaf', class: mostCommonClass(target) };
-    }
-
-    var bestAttrIndex = bestAttribute(data, target);
-    var bestAttrName = attributeNames[bestAttrIndex];
-    var tree = { type: 'node', attribute: bestAttrName, children: {} };
-    var uniqueValues = Array.from(new Set(data[bestAttrIndex]));
-
-    for (var value of uniqueValues) {
-        var subsetIndices = data[bestAttrIndex].map((item, index) => item === value ? index : -1).filter(index => index !== -1);
-        var subsetData = data.map(attribute => subsetIndices.map(index => attribute[index]));
-        var subsetTarget = subsetIndices.map(index => target[index]);
-        var newAttributeNames = attributeNames.slice();
-        newAttributeNames.splice(bestAttrIndex, 1);
-        tree.children[value] = buildTree(subsetData, subsetTarget, newAttributeNames);
-    }
-
-    return tree;
-}
-
-function mostCommonClass(target) {
-    var freq = makeFrequencyTable(target);
-    var maxCount = 0;
-    var mostCommon = null;
-    for (let [key, value] of freq) {
-        if (value > maxCount) {
-            maxCount = value;
-            mostCommon = key;
+    // Flatten the data array
+    const flattenedData = [];
+    for (let i = 0; i < target.length; i++) {
+        const obj = {};
+        for (let j = 0; j < num; j++) {
+            obj[`Atribut ${j + 1}`] = data[j][i][`Atribut ${j + 1}`];
         }
+        obj['target'] = target[i];
+        flattenedData.push(obj);
     }
-    return mostCommon;
-}
 
-function displayTree(node, indent = 0) {
-    var spacing = "&nbsp;".repeat(indent * 4);
-    if (node.type === 'leaf') {
-        document.getElementById('prikaz').innerHTML += `${spacing}Razred: ${node.class}<br>`;
-    } else {
-        document.getElementById('prikaz').innerHTML += `${spacing}${node.attribute}<br>`;
-        for (var value in node.children) {
-            document.getElementById('prikaz').innerHTML += `${spacing}Vrednost: ${value}:<br>`;
-            displayTree(node.children[value], indent + 1);
-        }
-    }
-}
-
-function generateTree() {
-    var num = document.getElementById("stAtr").value;
-    var data = [];
-    var attributeNames = [];
-    for (let i = 0; i < num; i++) {
-        data.push(document.getElementById("atr" + i).value.split(","));
-        attributeNames.push(`Atribut ${i + 1}`);
-    }
-    var target = document.getElementById("ciljni").value.split(",");
-
-    var tree = buildTree(data, target, attributeNames);
+    const decisionTree = new DecisionTree(flattenedData, 'target');
     document.getElementById('prikaz').innerHTML = '';
-    displayTree(tree);
+    decisionTree.displayTree();
 }
