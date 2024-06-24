@@ -58,6 +58,9 @@ function reloadValues(){
     document.getElementById("g1").innerHTML = gain(a1,ciljni)
     document.getElementById("g2").innerHTML = gain(a2,ciljni)
     document.getElementById("g3").innerHTML = gain(a3,ciljni)
+    document.getElementById("igr1").innerHTML = gainRatio(a1,ciljni)
+    document.getElementById("igr2").innerHTML = gainRatio(a2,ciljni)
+    document.getElementById("igr3").innerHTML = gainRatio(a3,ciljni)
 }
 
 document.addEventListener('DOMContentLoaded', function() {
