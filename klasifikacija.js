@@ -104,7 +104,7 @@ class DecisionTree {
         const prikazDiv = document.getElementById('prikaz');
         const spacing = '&nbsp;'.repeat(indent * 4);
         if (tree.label) {
-            prikazDiv.innerHTML += `${spacing}Label: ${tree.label}<br>`;
+            prikazDiv.innerHTML += `${spacing}goalClass: ${tree.label}<br>`;
         } else {
             prikazDiv.innerHTML += `${spacing}Attribute: ${tree.attribute}<br>`;
             for (let value in tree.branches) {
